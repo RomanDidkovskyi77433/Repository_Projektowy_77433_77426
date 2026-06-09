@@ -1,7 +1,8 @@
-const API_URL = 'http://localhost:3000/api/books';
+// Automatyczne wykrywanie URL — lokalnie lub na Railway
+const API_URL = `${window.location.origin}/api/books`;
 
 let allBooks = []; 
-let isEditMode = false; // Zmienna sterująca trybem edycji
+let isEditMode = false;
 
 // Referencje do elementów DOM
 const bookForm = document.getElementById('book-form');
@@ -14,25 +15,21 @@ const modalBody = document.getElementById('modal-body');
 
 // Przełączanie Trybu Edycji
 editModeBtn.addEventListener('click', () => {
-    isEditMode = !isEditMode; // Zmiana stanu
+    isEditMode = !isEditMode;
     editModeBtn.innerText = isEditMode ? "Zakończ edycję" : "Edytuj";
     adminPanel.style.display = isEditMode ? "block" : "none";
     renderBooks(allBooks);
 });
 
-// Pobieranie i Wyszukiwarka
+// Pobieranie książek
 async function fetchBooks() {
     try {
         const response = await fetch(API_URL);
         allBooks = await response.json();
         renderBooks(allBooks);
     } catch (error) {
-        console.error('Błąd:', error);
-        // Symulacja danych do testów bez backendu
-        allBooks = [
-            { id: 1, title: "Wiedźmin", author: "Andrzej Sapkowski", category: "Fantastyka", cover: "https://covers.storytel.com/jpg-640/0408311119686.ed958adf-e147-46bc-bf5f-d7da6e1305a5?optimize=high&quality=70&width=600", description: "Klasyka fantasy.", rating: "⭐⭐⭐⭐⭐" }
-        ];
-        renderBooks(allBooks);
+        console.error('Błąd połączenia z serwerem:', error);
+        bookList.innerHTML = '<p style="text-align:center; color:red;">Błąd połączenia z serwerem. Sprawdź czy serwer działa.</p>';
     }
 }
 
@@ -49,6 +46,12 @@ searchInput.addEventListener('input', (e) => {
 // Wyświetlanie Książek
 function renderBooks(books) {
     bookList.innerHTML = '';
+
+    if (books.length === 0) {
+        bookList.innerHTML = '<p style="text-align:center; color:#999; grid-column:1/-1;">Brak książek. Dodaj pierwszą!</p>';
+        return;
+    }
+
     books.forEach(book => {
         const card = document.createElement('div');
         card.classList.add('book-card');
@@ -63,12 +66,10 @@ function renderBooks(books) {
             <p>Ocena: ${book.rating || 'Brak ocen'}</p>
         `;
 
-        // Kliknięcie w kartę otwiera szczegóły
         card.addEventListener('click', (e) => {
             if(e.target.tagName !== 'BUTTON') openDetails(book);
         });
 
-        // Przyciski widoczne tylko, gdy kliknięto "Edytuj" w nawigacji
         if (isEditMode) {
             const controls = document.createElement('div');
             controls.classList.add('admin-controls');
@@ -98,14 +99,12 @@ bookForm.addEventListener('submit', async (e) => {
 
     try {
         if (id) {
-            // Edycja
             await fetch(`${API_URL}/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bookData)
             });
         } else {
-            // Dodawanie
             await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -155,7 +154,7 @@ function openDetails(book) {
         <h2>${book.title}</h2>
         <h4>Autor: ${book.author}</h4>
         <p><strong>Kategoria:</strong> ${book.category}</p>
-        <p style="margin-top: 10px;"><strong>Opis:</strong> ${book.description}</p>
+        <p style="margin-top: 10px;"><strong>Opis:</strong> ${book.description || 'Brak opisu'}</p>
     `;
     modal.style.display = 'flex';
 }
